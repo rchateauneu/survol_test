@@ -41,9 +41,8 @@ class SurvolServerTest(unittest.TestCase):
     Test servers
     """
 
-    def __start_survol_agent(self, agent_host, agent_port):
-        import survol.scripts.cgiserver
-
+    def __start_survol_agent(self, agent_host, agent_port, target_function):
+        import survol
         # For example C:\Users\rchateau\Developpement\ReverseEngineeringApps\survol_test\venv\lib\site-packages\survol
         survol_dir = os.path.dirname(survol.__file__)
         # This is where it will find "survol/entity.py"
@@ -51,7 +50,7 @@ class SurvolServerTest(unittest.TestCase):
         print("scripts_dir=%s" % scripts_dir)
 
         agent_process = multiprocessing.Process(
-            target=survol.scripts.cgiserver.start_server_forever,
+            target=target_function,
             args=(True, agent_host, agent_port, scripts_dir))
 
         agent_process.start()
@@ -59,28 +58,75 @@ class SurvolServerTest(unittest.TestCase):
         time.sleep(3.0)
         return agent_process
 
+    def __start_survol_agent_cgi(self, agent_host, agent_port):
+        import survol.scripts.cgiserver
+        return self.__start_survol_agent(agent_host, agent_port, survol.scripts.cgiserver.start_server_forever)
+
+    def __start_survol_agent_wsgi(self, agent_host, agent_port):
+        import survol.scripts.wsgiserver
+        return self.__start_survol_agent(agent_host, agent_port, survol.scripts.wsgiserver.start_server_forever)
 
     def test_start_cgi_server(self):
         agent_host = "127.0.0.1"
         agent_port = 6789
-        agent_process = self.__start_survol_agent(agent_host, agent_port)
+        agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
         print("test_start_cgi_server local_agent_url=", local_agent_url)
         response = urlopen(local_agent_url, timeout=15)
-        print("Response=", response)
         agent_process.terminate()
         agent_process.join()
 
     def test_start_wsgi_server(self):
         agent_host = "127.0.0.1"
         agent_port = 9876
-        agent_process = self.__start_survol_agent(agent_host, agent_port)
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
         print("test_start_cgi_server local_agent_url=", local_agent_url)
         response = urlopen(local_agent_url, timeout=15)
-        print("Response=", response)
+        agent_process.terminate()
+        agent_process.join()
+
+    def test_cgi_server_processes_list_to_rdflib(self):
+        import rdflib
+
+        agent_host = "127.0.0.1"
+        agent_port = 6789
+        agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_Process.py?mode=rdf" % (agent_host, agent_port)
+        print("test_cgi_server_processes_list local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+        agent_process.terminate()
+        agent_process.join()
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+        len_result = len(result)
+
+        # There is at least one process.
+        self.assertTrue(len_result > 0)
+
+        # Now select the process ids based on a specific CIM property.
+        url_handle = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#Handle")
+        pids_list = [
+            int(rdf_object.value)
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_handle, None))]
+        print("Pids=", pids_list)
+        self.assertTrue(os.getpid() in pids_list)
+
+    def test_start_wsgi_disks_list(self):
+        agent_host = "127.0.0.1"
+        agent_port = 9876
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_LogicalDisk.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_wsgi_disks_list local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        data = response.read().decode("utf-8")
+        print("data=", data)
         agent_process.terminate()
         agent_process.join()
 
