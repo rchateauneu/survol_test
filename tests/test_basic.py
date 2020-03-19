@@ -68,7 +68,7 @@ class SurvolServerTest(unittest.TestCase):
 
     def test_start_cgi_server(self):
         agent_host = "127.0.0.1"
-        agent_port = 6789
+        agent_port = 10101
         agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
@@ -79,7 +79,7 @@ class SurvolServerTest(unittest.TestCase):
 
     def test_start_wsgi_server(self):
         agent_host = "127.0.0.1"
-        agent_port = 9876
+        agent_port = 20101
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
@@ -92,7 +92,7 @@ class SurvolServerTest(unittest.TestCase):
         import rdflib
 
         agent_host = "127.0.0.1"
-        agent_port = 6789
+        agent_port = 10102
         agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_Process.py?mode=rdf" % (agent_host, agent_port)
@@ -119,7 +119,7 @@ class SurvolServerTest(unittest.TestCase):
 
     def test_start_wsgi_disks_list(self):
         agent_host = "127.0.0.1"
-        agent_port = 9876
+        agent_port = 20102
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_LogicalDisk.py?mode=rdf" % (agent_host, agent_port)
