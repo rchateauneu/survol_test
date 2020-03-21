@@ -20,7 +20,7 @@ matrix:
       env:
         - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 install:
-  - pip install survol
+  - pip install survol -vvv
 script:
   - pwd
   - pytest -v --durations=10 tests
