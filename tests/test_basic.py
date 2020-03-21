@@ -55,7 +55,7 @@ class SurvolServerTest(unittest.TestCase):
 
         agent_process.start()
         print("test_start_cgi_server: Waiting for CGI agent to start")
-        time.sleep(3.0)
+        time.sleep(2.0)
         return agent_process
 
     def __start_survol_agent_cgi(self, agent_host, agent_port):
@@ -118,6 +118,7 @@ class SurvolServerTest(unittest.TestCase):
         self.assertTrue(os.getpid() in pids_list)
 
     def test_start_wsgi_disks_list(self):
+        import rdflib
         agent_host = "127.0.0.1"
         agent_port = 20102
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
@@ -125,8 +126,18 @@ class SurvolServerTest(unittest.TestCase):
         local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_LogicalDisk.py?mode=rdf" % (agent_host, agent_port)
         print("test_start_wsgi_disks_list local_agent_url=", local_agent_url)
         response = urlopen(local_agent_url, timeout=15)
-        data = response.read().decode("utf-8")
-        print("data=", data)
+        rdf_data = response.read().decode("utf-8")
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_device_id = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#DeviceID")
+        device_ids_list = [
+            rdf_object.value
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_device_id, None))]
+        print("Devices=", device_ids_list)
+        self.assertTrue('C:' in device_ids_list)
+
         agent_process.terminate()
         agent_process.join()
 
