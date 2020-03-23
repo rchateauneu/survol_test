@@ -9,6 +9,8 @@ from __future__ import print_function
 import os
 import sys
 import time
+import rdflib
+import pkgutil
 import unittest
 import multiprocessing
 
@@ -19,6 +21,11 @@ except ImportError:
     # Fall back to Python 2's urllib2
     from urllib2 import urlopen
 
+try:
+    CurrentUsername = os.environ["USERNAME"]
+except KeyError:
+    # This is for Linux.
+    CurrentUsername = os.environ["USER"]
 
 # The purpose is to test survol and import it as an external package.
 class SurvolImportsTest(unittest.TestCase):
@@ -67,7 +74,7 @@ class SurvolServerTest(unittest.TestCase):
         import survol.scripts.wsgiserver
         return self.__start_survol_agent(agent_host, agent_port, survol.scripts.wsgiserver.start_server_forever)
 
-    def test_start_cgi_server(self):
+    def test_cgi_server_start(self):
         agent_host = "127.0.0.1"
         agent_port = 10101
         agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
@@ -78,20 +85,7 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.terminate()
         agent_process.join()
 
-    def test_start_wsgi_server(self):
-        agent_host = "127.0.0.1"
-        agent_port = 20101
-        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
-
-        local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
-        print("test_start_cgi_server local_agent_url=", local_agent_url)
-        response = urlopen(local_agent_url, timeout=15)
-        agent_process.terminate()
-        agent_process.join()
-
     def test_cgi_server_processes_list_to_rdflib(self):
-        import rdflib
-
         agent_host = "127.0.0.1"
         agent_port = 10102
         agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
@@ -118,9 +112,68 @@ class SurvolServerTest(unittest.TestCase):
         print("Pids=", pids_list)
         self.assertTrue(os.getpid() in pids_list)
 
+    @unittest.skipIf(not pkgutil.find_loader('pip'), "This test needs pip.")
+    def test_cgi_python_packages(self):
+        agent_host = "127.0.0.1"
+        agent_port = 40104
+        agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_python_package.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_cgi_server local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_predicate_Id = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#Id")
+        python_packages_list = [
+            rdf_object.value
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_predicate_Id, None))]
+        print("Python package=", python_packages_list)
+        self.assertTrue('rdflib' in python_packages_list)
+        self.assertTrue('survol' in python_packages_list)
+
+        agent_process.terminate()
+        agent_process.join()
+
+    def test_cgi_users(self):
+        agent_host = "127.0.0.1"
+        agent_port = 40105
+        agent_process = self.__start_survol_agent_cgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_user.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_cgi_server local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+        print("rdf_data=", rdf_data)
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_predicate_Name = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#Name")
+        users_list = [
+            str(rdf_object)
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_predicate_Name, None))]
+        print("Users=", users_list)
+        self.assertTrue(CurrentUsername in users_list)
+
+        agent_process.terminate()
+        agent_process.join()
+
+    def test_wsgi_server_start(self):
+        agent_host = "127.0.0.1"
+        agent_port = 20101
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/entity.py" % (agent_host, agent_port)
+        print("test_start_cgi_server local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        agent_process.terminate()
+        agent_process.join()
+
     @unittest.skipIf(not sys.platform.startswith('win'), "This dockit test on Windows only")
-    def test_start_wsgi_disks_list_windows(self):
-        import rdflib
+    def test_wsgi_disks_list_windows(self):
         agent_host = "127.0.0.1"
         agent_port = 20102
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
@@ -144,10 +197,9 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.join()
 
     @unittest.skipIf(not sys.platform.startswith('lin'), "This dockit test on Linux only")
-    def test_start_wsgi_disks_list_linux(self):
-        import rdflib
+    def test_wsgi_disks_list_linux(self):
         agent_host = "127.0.0.1"
-        agent_port = 20102
+        agent_port = 20103
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_LogicalDisk.py?mode=rdf" % (agent_host, agent_port)
@@ -164,6 +216,55 @@ class SurvolServerTest(unittest.TestCase):
             for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_file_system, None))]
         print("File systems=", file_systems_list)
         self.assertTrue('ext4' in file_systems_list)
+
+        agent_process.terminate()
+        agent_process.join()
+
+    @unittest.skipIf(not pkgutil.find_loader('pip'), "This test needs pip.")
+    def test_wsgi_python_packages(self):
+        agent_host = "127.0.0.1"
+        agent_port = 40104
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_python_package.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_cgi_server local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_predicate_Id = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#Id")
+        python_packages_list = [
+            rdf_object.value
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_predicate_Id, None))]
+        print("Python package=", python_packages_list)
+        self.assertTrue('rdflib' in python_packages_list)
+        self.assertTrue('survol' in python_packages_list)
+
+        agent_process.terminate()
+        agent_process.join()
+
+    def test_wsgi_users(self):
+        agent_host = "127.0.0.1"
+        agent_port = 40105
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_user.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_cgi_server local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+        print("rdf_data=", rdf_data)
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_predicate_Name = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#Name")
+        users_list = [
+            str(rdf_object)
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_predicate_Name, None))]
+        print("Users=", users_list)
+        self.assertTrue(CurrentUsername in users_list)
 
         agent_process.terminate()
         agent_process.join()
