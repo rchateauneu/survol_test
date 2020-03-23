@@ -260,10 +260,8 @@ class SurvolServerTest(unittest.TestCase):
         agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
 
         local_agent_url = "http://%s:%s/survol/sources_types/enumerate_user.py?mode=rdf" % (agent_host, agent_port)
-        print("test_start_cgi_server local_agent_url=", local_agent_url)
         response = urlopen(local_agent_url, timeout=15)
         rdf_data = response.read().decode("utf-8")
-        print("rdf_data=", rdf_data)
 
         rdf_graph = rdflib.Graph()
         result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
@@ -279,6 +277,7 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.join()
 
 
+@unittest.skip("Not implemented yet")
 @unittest.skipIf(not sys.platform.startswith('win'), "This dockit test on Windows only")
 class SurvolDockitTestWindows(unittest.TestCase):
     """
@@ -311,6 +310,8 @@ class SurvolDockitTestWindows(unittest.TestCase):
         # Check the result.
         pass
 
+
+@unittest.skip("Not implemented yet")
 @unittest.skipIf(not sys.platform.startswith('lin'), "This dockit test on Linux only")
 class SurvolDockitTestLinux(unittest.TestCase):
     """
@@ -329,6 +330,8 @@ class SurvolDockitTestLinux(unittest.TestCase):
         # Check the result.
         pass
 
+
+@unittest.skip("Not implemented yet")
 class SurvolCombinedDockitServerTest(unittest.TestCase):
     """
     Test dockit execution plus running a server to get events.
