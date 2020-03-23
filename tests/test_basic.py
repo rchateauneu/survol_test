@@ -7,6 +7,7 @@ from __future__ import print_function
 # a user point of view.
 
 import os
+import sys
 import time
 import unittest
 import multiprocessing
@@ -142,7 +143,40 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.join()
 
 
-class SurvolDockitTest(unittest.TestCase):
+@unittest.skipIf(not sys.platform.startswith('win'), "This dockit test on Windows only")
+class SurvolDockitTestWindows(unittest.TestCase):
+    """
+    Test dockit execution
+    """
+
+    def test_dockit_command(self):
+        import survol.scripts.dockit
+
+        # dos_command = "dir something.xyz"
+        # survol.scripts.dockit.test_from_file(
+        #     inputLogFile,
+        #     tracer,
+        #     topPid,
+        #     baseOutName,
+        #     outputFormat,
+        #     verbose,
+        #     mapParamsSummary,
+        #     summaryFormat,
+        #     withWarning,
+        #     withDockerfile,
+        #     updateServer,
+        #     aggregator)
+
+    def test_dockit_pid(self):
+        # Starts a process which do something for some seconds.
+
+        # Monitors it with dockit.
+
+        # Check the result.
+        pass
+
+@unittest.skipIf(not sys.platform.startswith('lin'), "This dockit test on Linux only")
+class SurvolDockitTestLinux(unittest.TestCase):
     """
     Test dockit execution
     """
