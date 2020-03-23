@@ -118,7 +118,8 @@ class SurvolServerTest(unittest.TestCase):
         print("Pids=", pids_list)
         self.assertTrue(os.getpid() in pids_list)
 
-    def test_start_wsgi_disks_list(self):
+    @unittest.skipIf(not sys.platform.startswith('win'), "This dockit test on Windows only")
+    def test_start_wsgi_disks_list_windows(self):
         import rdflib
         agent_host = "127.0.0.1"
         agent_port = 20102
@@ -138,6 +139,31 @@ class SurvolServerTest(unittest.TestCase):
             for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_device_id, None))]
         print("Devices=", device_ids_list)
         self.assertTrue('C:' in device_ids_list)
+
+        agent_process.terminate()
+        agent_process.join()
+
+    @unittest.skipIf(not sys.platform.startswith('lin'), "This dockit test on Linux only")
+    def test_start_wsgi_disks_list_linux(self):
+        import rdflib
+        agent_host = "127.0.0.1"
+        agent_port = 20102
+        agent_process = self.__start_survol_agent_wsgi(agent_host, agent_port)
+
+        local_agent_url = "http://%s:%s/survol/sources_types/enumerate_CIM_LogicalDisk.py?mode=rdf" % (agent_host, agent_port)
+        print("test_start_wsgi_disks_list local_agent_url=", local_agent_url)
+        response = urlopen(local_agent_url, timeout=15)
+        rdf_data = response.read().decode("utf-8")
+
+        rdf_graph = rdflib.Graph()
+        result = rdf_graph.parse(data=rdf_data, format="application/rdf+xml")
+
+        url_file_system = rdflib.term.URIRef("http://www.primhillcomputers.com/survol#file_system")
+        file_systems_list = [
+            rdf_object.value
+            for rdf_subject, rdf_predicate, rdf_object in rdf_graph.triples((None, url_file_system, None))]
+        print("File systems=", file_systems_list)
+        self.assertTrue('ext4' in file_systems_list)
 
         agent_process.terminate()
         agent_process.join()
