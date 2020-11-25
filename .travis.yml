@@ -30,5 +30,5 @@ install:
   - pip install survol -vvv
 script:
   - pwd
-  - python -m pytest -v --durations=10 tests
+  - pytest -v --durations=10 tests
 
