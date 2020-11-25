@@ -32,7 +32,7 @@ def is_travis_machine():
     # Some tests cannot be run on a Travis machine if some tools are not there.
     return os.getcwd().find("travis") >= 0
 
-is_windows = sys.platform.startswith('win')
+is_platform_windows = sys.platform.startswith("win32")
 
 # The purpose is to test survol and import it as an external package.
 class SurvolImportsTest(unittest.TestCase):
@@ -46,7 +46,7 @@ class SurvolImportsTest(unittest.TestCase):
         print(dir(survol))
         print(survol.__author__)
 
-    @unittest.skipIf(is_windows and not pkgutil.find_loader('pywin32'), "This test needs pywin32 on Windows.")
+    @unittest.skipIf(is_platform_windows and not pkgutil.find_loader('pywin32'), "This test needs pywin32 on Windows.")
     def test_import_dockit(self):
         import survol.scripts.dockit
         print(dir(survol.scripts.dockit))
@@ -63,7 +63,7 @@ class SurvolServerTest(unittest.TestCase):
         survol_dir = os.path.dirname(survol.__file__)
         # This is where it will find "survol/entity.py"
         scripts_dir = os.path.abspath(os.path.join(survol_dir, ".."))
-        print("scripts_dir=%s" % scripts_dir)
+        print(__file__ + " scripts_dir=%s" % scripts_dir)
 
         agent_process = multiprocessing.Process(
             target=target_function,
@@ -145,7 +145,7 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.terminate()
         agent_process.join()
 
-    @unittest.skipIf(is_travis_machine() and is_windows, "Cannot get users on Travis and Windows.")
+    @unittest.skipIf(is_travis_machine() and is_platform_windows, "Cannot get users on Travis and Windows.")
     def test_cgi_users(self):
         agent_host = "127.0.0.1"
         agent_port = 40105
@@ -183,7 +183,7 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.terminate()
         agent_process.join()
 
-    @unittest.skipIf(not is_windows, "This dockit test on Windows only")
+    @unittest.skipIf(not is_platform_windows, "This dockit test on Windows only")
     def test_wsgi_disks_list_windows(self):
         agent_host = "127.0.0.1"
         agent_port = 20102
@@ -256,7 +256,7 @@ class SurvolServerTest(unittest.TestCase):
         agent_process.terminate()
         agent_process.join()
 
-    @unittest.skipIf(is_travis_machine() and is_windows, "Cannot get users on Travis and Windows.")
+    @unittest.skipIf(is_travis_machine() and is_platform_windows, "Cannot get users on Travis and Windows.")
     def test_wsgi_users(self):
         agent_host = "127.0.0.1"
         agent_port = 40105
@@ -281,7 +281,7 @@ class SurvolServerTest(unittest.TestCase):
 
 
 @unittest.skip("Not implemented yet")
-@unittest.skipIf(not is_windows, "This dockit test on Windows only")
+@unittest.skipIf(not is_platform_windows, "This dockit test on Windows only")
 class SurvolDockitTestWindows(unittest.TestCase):
     """
     Test dockit execution
