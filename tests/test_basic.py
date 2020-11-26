@@ -3,8 +3,7 @@
 from __future__ import print_function
 
 # This tests various Survol features, uniquely from the survol package.
-# No internal test is done: The intention is to try features from
-# a user point of view.
+# No internal test is done: The intention is only to test survol installation and user features.
 
 import os
 import sys
